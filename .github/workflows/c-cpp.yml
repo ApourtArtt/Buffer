@@ -15,4 +15,4 @@ jobs:
     - name: make
       run: make
     - name: run tests
-      run: pwd && ls -la tests && Buffer
+      run: pwd && ls -la && Buffer
