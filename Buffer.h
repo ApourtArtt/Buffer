@@ -99,5 +99,5 @@ std::string ParseString(const char* data, int offset)
 
 std::string ParseStringWithSize(const char* data, int offset, int size)
 {
-    return std::move(std::string(data, size));
+    return std::move(std::string(data + offset, size));
 }
