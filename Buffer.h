@@ -1,6 +1,7 @@
 #pragma once
 #include <bit> // C++20, endianness
 #include <string>
+#include <cstring>
 
 namespace Buffer
 {
