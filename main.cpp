@@ -136,7 +136,7 @@ EXPECT("b to be 123456", dummy.b == 123456);
 EXPECT("c to be \"hellob\"", dummy.c == "hellob");
 const char* new_buffer = dummy.Bufferize();
 EXPECT("buffer and new_buffer to be identical", memcmp(buffer, new_buffer, 18) == 0);
-)
+);
 
 int main()
 {

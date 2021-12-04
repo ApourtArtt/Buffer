@@ -90,18 +90,18 @@ namespace Buffer
     template<typename T>
     char* ParseTwoBytesLittleEndian(T data)
     {
-        char* res = (char*)malloc(4);
-        res[0] = (data >> 8 & 0xFF);
-        res[1] = (data & 0xFF);
+        char* res = (char*)malloc(2);
+        res[0] = (data & 0xFF);
+        res[1] = (data >> 8 & 0xFF);
         return res;
     }
 
     template<typename T>
     char* ParseTwoBytesBigEndian(T data)
     {
-        char* res = (char*)malloc(4);
-        res[0] = (data & 0xFF);
-        res[1] = (data >> 8 & 0xFF);
+        char* res = (char*)malloc(2);
+        res[0] = (data >> 8 & 0xFF);
+        res[1] = (data & 0xFF);
         return res;
     }
 
