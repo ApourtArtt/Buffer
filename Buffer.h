@@ -2,6 +2,7 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <tuple>
 
 namespace Buffer
 {
@@ -111,11 +112,7 @@ namespace Buffer
                 *current += 4;
                 return val;
             }
-            else
-            {
-                static_assert(false, "This operation is not supported");
-            }
-            
+
             return T{};
         }
 
