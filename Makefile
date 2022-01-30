@@ -1,5 +1,5 @@
 NAME        := Buffer
-CXX         := g++
+CXX         := g++-11
 CXXFLAGS    := -std=c++2a
 
 SRC_DIR		:= .
