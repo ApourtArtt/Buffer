@@ -1,6 +1,7 @@
 NAME        := Buffer
 CXX         := g++
 CXXFLAGS    := -std=c++2a
+CXXVERSION	:= 11
 
 SRC_DIR		:= .
 LIBS        := -I.
@@ -14,5 +15,4 @@ $(NAME): $(OBJS)
 	$(CXX) -o $@ $^ $(LIBS)
 
 $(OBJS): $(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
-	g++ --version
-	$(CXX) $(CXXFLAGS) -c -o $@ $< $(LIBS)
+	$(CXX)-$(CXXVERSION) $(CXXFLAGS) -c -o $@ $< $(LIBS)
