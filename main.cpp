@@ -5,6 +5,9 @@
 int main() { return Tester::Run(); }
 
 
+
+// Buffer::From
+
 TEST("Buffer::ParseOneByte", "work",
 	for (char i = -128; i < 127; i++)
 	{
@@ -50,10 +53,10 @@ TEST("Buffer::From::ParseFourBytes", "work",
 	EXPECT("Buffer::From::ParseFourBytes<int32_t>(\"\\x00\\x00\\x00\\x80\") to be -2147483648", Buffer::From::ParseFourBytes<int32_t>("\x00\x00\x00\x80") == -2147483648);
 	EXPECT("Buffer::From::ParseFourBytes<int32_t>(\"\\xFF\\xFF\\xFF\\x7F\") to be 2147483647", Buffer::From::ParseFourBytes<int32_t>("\xFF\xFF\xFF\x7F") == 2147483647);
 
-	EXPECT("Buffer::From::ParseFourBytes<int32_t>(\"\\x00\\x00\\x00\\x00\") to be 0", Buffer::From::ParseFourBytes<uint32_t>("\x00\x00\x00\x00") == 0);
-	EXPECT("Buffer::From::ParseFourBytes<int32_t>(\"\\xFF\\xFF\\xFF\\xFF\") to be -1", Buffer::From::ParseFourBytes<uint32_t>("\xFF\xFF\xFF\xFF") == 4294967295);
-	EXPECT("Buffer::From::ParseFourBytes<int32_t>(\"\\x00\\x00\\x00\\x80\") to be -2147483648", Buffer::From::ParseFourBytes<uint32_t>("\x00\x00\x00\x80") == 2147483648);
-	EXPECT("Buffer::From::ParseFourBytes<int32_t>(\"\\xFF\\xFF\\xFF\\x7F\") to be 2147483647", Buffer::From::ParseFourBytes<uint32_t>("\xFF\xFF\xFF\x7F") == 2147483647);
+	EXPECT("Buffer::From::ParseFourBytes<uint32_t>(\"\\x00\\x00\\x00\\x00\") to be 0", Buffer::From::ParseFourBytes<uint32_t>("\x00\x00\x00\x00") == 0);
+	EXPECT("Buffer::From::ParseFourBytes<uint32_t>(\"\\xFF\\xFF\\xFF\\xFF\") to be 4294967295", Buffer::From::ParseFourBytes<uint32_t>("\xFF\xFF\xFF\xFF") == 4294967295);
+	EXPECT("Buffer::From::ParseFourBytes<uint32_t>(\"\\x00\\x00\\x00\\x80\") to be 2147483648", Buffer::From::ParseFourBytes<uint32_t>("\x00\x00\x00\x80") == 2147483648);
+	EXPECT("Buffer::From::ParseFourBytes<uint32_t>(\"\\xFF\\xFF\\xFF\\x7F\") to be 2147483647", Buffer::From::ParseFourBytes<uint32_t>("\xFF\xFF\xFF\x7F") == 2147483647);
 );
 
 BENCH("Buffer::From::ParseFourBytes", "be fast",
@@ -69,17 +72,17 @@ BENCH("Buffer::From::ParseFourBytes", "be fast",
 TEST("Buffer::From::ParseString", "work",
 	const char* buffer = "hello\0world";
 
-EXPECT("Buffer::From::ParseString(\"hello\\0world\") to be \"hello\"", Buffer::From::ParseString(buffer) == "hello");
-EXPECT("Buffer::From::ParseString(\"hello\\0world\" + 5) to be \"\"", Buffer::From::ParseString(buffer + 5) == "\x00");
-EXPECT("Buffer::From::ParseString(\"hello\\0world\" + 6) to be \"world\"", Buffer::From::ParseString(buffer + 6) == "world");
+	EXPECT("Buffer::From::ParseString(\"hello\\0world\") to be \"hello\"", Buffer::From::ParseString(buffer) == "hello");
+	EXPECT("Buffer::From::ParseString(\"hello\\0world\" + 5) to be \"\"", Buffer::From::ParseString(buffer + 5) == "\x00");
+	EXPECT("Buffer::From::ParseString(\"hello\\0world\" + 6) to be \"world\"", Buffer::From::ParseString(buffer + 6) == "world");
 );
 
 BENCH("Buffer::From::ParseString   ", "be fast",
 	const char* buffer = "hello";
 
-START_BENCH;
-Buffer::From::ParseString(buffer);
-STOP_BENCH;
+	START_BENCH;
+	Buffer::From::ParseString(buffer);
+	STOP_BENCH;
 );
 
 
@@ -87,17 +90,17 @@ STOP_BENCH;
 TEST("Buffer::From::ParseStringWithSize", "work",
 	const char* buffer = "hello\0world";
 
-EXPECT("Buffer::From::ParseStringWithSize(\"hello\\0world\", 3) to be \"hel\"", Buffer::From::ParseStringWithSize(buffer, 3) == "hel");
-EXPECT("Buffer::From::ParseStringWithSize(\"hello\\0world\", 5) to be \"hello\"", Buffer::From::ParseStringWithSize(buffer, 5) == "hello");
-EXPECT("Buffer::From::ParseStringWithSize(\"hello\\0world\", 11) to be \"hello\\0world\"", Buffer::From::ParseStringWithSize(buffer, 11) == std::string("hello\0world", 11));
+	EXPECT("Buffer::From::ParseStringWithSize(\"hello\\0world\", 3) to be \"hel\"", Buffer::From::ParseStringWithSize(buffer, 3) == "hel");
+	EXPECT("Buffer::From::ParseStringWithSize(\"hello\\0world\", 5) to be \"hello\"", Buffer::From::ParseStringWithSize(buffer, 5) == "hello");
+	EXPECT("Buffer::From::ParseStringWithSize(\"hello\\0world\", 11) to be \"hello\\0world\"", Buffer::From::ParseStringWithSize(buffer, 11) == std::string("hello\0world", 11));
 );
 
 BENCH("Buffer::From::ParseStringWithSize   ", "be fast",
 	const char* buffer = "hello";
 
-START_BENCH;
-Buffer::From::ParseStringWithSize(buffer, 5);
-STOP_BENCH;
+	START_BENCH;
+	Buffer::From::ParseStringWithSize(buffer, 5);
+	STOP_BENCH;
 );
 
 
@@ -115,4 +118,9 @@ BENCH("Buffer::From::ParseStringWithSizeOneByte   ", "be fast",
 	Buffer::From::ParseStringWithSizeOneByte(buffer);
 	STOP_BENCH;
 );
+
+
+
+// Buffer::To
+
 

@@ -3,7 +3,7 @@ CXX         := g++
 CXXFLAGS    := -std=c++2a
 
 SRC_DIR		:= .
-LIBS        := -I Tester.h -I Buffer.h
+LIBS        := -I.
 
 SRCS        := ./main.cpp
 OBJS        := $(SRCS:%.cpp=%.o)
