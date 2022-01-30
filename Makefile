@@ -14,4 +14,5 @@ $(NAME): $(OBJS)
 	$(CXX) -o $@ $^ $(LIBS)
 
 $(OBJS): $(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
+	g++ --version
 	$(CXX) $(CXXFLAGS) -c -o $@ $< $(LIBS)
