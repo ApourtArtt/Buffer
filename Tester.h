@@ -54,8 +54,8 @@ namespace
 #define CONCAT_INNER(a, b) a ## b
 #define UNIQUE_NAME(base) CONCAT(base, __COUNTER__)
 
-#define TESTER(name,message,func) registrar UNIQUE_NAME(t)(name, message, []() -> testRet {testRet r; func return r;});
-#define BENCHER(name, message, func) registrar UNIQUE_NAME(b)(name, message, []() -> benchRet{benchRet r; func return r;});
+#define TESTER(name, message, func) registrar UNIQUE_NAME(t)(name, message, []() -> testRet { testRet r; func return r; });
+#define BENCHER(name, message, func) registrar UNIQUE_NAME(b)(name, message, []() -> benchRet { benchRet r; func return r; });
 #define EXPECTER(title, statement) r.AddStatement(std::string("[EXPECT] ")+title, statement, GET_LOCATION);
 #define ASSERTER(title, statement) r.AddStatement(std::string("[ASSERT] ")+title, statement, GET_LOCATION); if (statement == false) return r;
 }

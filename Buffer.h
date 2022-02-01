@@ -79,14 +79,14 @@ namespace Buffer
         {
             return ParseStringWithSize(data + 1, ParseOneByte<unsigned char>(data));
         }
-
+        
         template <typename T>
         static T internalParseVariable(const char* data, int* current)
         {
             // Note: no need to handle tuple, since std::tuple<..., std::tuple<...>, ...> does not make sense
             if constexpr (isVector<T>)
             {
-                return ParseVectorWithSizeOneByte<T::value_type>(data, current);
+                return internalParseVectorWithSizeOneByte<T::value_type>(data, current);
             }
             else if constexpr (isString<T>)
             {
@@ -132,7 +132,7 @@ namespace Buffer
         }
 
         template <typename T>
-        static std::vector<T> ParseVectorWithSizeOneByte(const char* data, int* current)
+        static std::vector<T> internalParseVectorWithSizeOneByte(const char* data, int* current)
         {
             unsigned char size = ParseOneByte<unsigned char>(data + *current);
 
@@ -249,9 +249,9 @@ namespace Buffer
             {
                 size_t size = 0;
                 std::apply([&size, &isOwnedByVector](auto&&... args)
-                    {
-                        ((size += getSize(args, isOwnedByVector)), ...);
-                    }, t);
+                {
+                    ((size += getSize(args, isOwnedByVector)), ...);
+                }, t);
                 return size;
             }
             else if constexpr (hasSize<T>)
