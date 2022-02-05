@@ -68,7 +68,7 @@ namespace
 #define START_BENCH \
     auto t1 = std::chrono::high_resolution_clock::now(); \
     auto t2 = std::chrono::high_resolution_clock::now(); \
-    while (duration_cast<std::chrono::milliseconds>(t2-t1).count() < 1000) {
+    while (duration_cast<std::chrono::milliseconds>(t2-t1).count() < 1000) [[unlikely]] {
 
 #define STOP_BENCH \
         t2 = std::chrono::high_resolution_clock::now(); \
