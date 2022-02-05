@@ -29,11 +29,11 @@ namespace Buffer
         template<typename T>
         concept isString = requires (const T & t) { std::common_type_t<T, std::string>(t); };
         template<typename T>
-        concept isOneByteVariable = sizeof T == 1; // (std::same_as<T, uint8_t> || std::same_as<T, int8_t>);
+        concept isOneByteVariable = sizeof(T) == 1; // (std::same_as<T, uint8_t> || std::same_as<T, int8_t>);
         template<typename T>
-        concept isTwoBytesVariable = sizeof T == 2; // (std::same_as<T, uint16_t> || std::same_as<T, int16_t>);
+        concept isTwoBytesVariable = sizeof(T) == 2; // (std::same_as<T, uint16_t> || std::same_as<T, int16_t>);
         template<typename T>
-        concept isFourBytesVariable = sizeof T == 4; // (std::same_as<T, uint32_t> || std::same_as<T, int32_t>);
+        concept isFourBytesVariable = sizeof(T) == 4; // (std::same_as<T, uint32_t> || std::same_as<T, int32_t>);
     }
 
     namespace From
