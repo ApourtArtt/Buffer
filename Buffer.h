@@ -75,7 +75,7 @@ namespace Buffer
             // Note: no need to handle tuple, since std::tuple<..., std::tuple<...>, ...> does not make sense
             if constexpr (isVector<T>)
             {
-                return internalParseVector<T::value_type>(data, current);
+                return internalParseVector<typename T::value_type>(data, current);
             }
             else if constexpr (isString<T>)
             {
