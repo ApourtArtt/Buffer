@@ -4,184 +4,242 @@
 
 int main() { return Tester::Run(); }
 
-// Test data
-std::vector<std::string> res1 = { "hello", "world!" };
-std::vector<int8_t> res2 = { 0x12, 0x34, 0x56 };
-std::vector<std::vector<std::string>> res3 = { { "hello", "world!"}, { "how", " are", "you?" } };
-std::vector<std::tuple<std::string, int8_t>> res4 = { { "hello", 0x12 }, { "world!", 0x34 } };
+TEST("Construct a Buffer from int8_t", "work",
+	for (int8_t i = -128;; i++)
+	{
+		Buffer::Buffer buf(i);
+		EXPECT("buf.GetSize() to be 1", buf.GetSize() == 1);
+		EXPECT("buf.GetData() to be " + std::to_string(i), buf.GetData()[0] == i);
+		EXPECT("Buffer::GetArguments() to be " + std::to_string(i), Buffer::Buffer::GetArguments<int8_t>(buf.GetData()) == i);
 
-std::string res5("\x2\x5hello\x6world!");
-std::string res6("\x3\x12\x34\x56");
-std::string res7("\x2\x2\x5hello\x6world!\x3\x3how\x4 are\x4you?");
-std::string res8("\x2\x5hello\x12\x6world!\x34");
-
-
-// Buffer::From
-TEST("Buffer::From::Parse", "work",
-	for (char i = -128; i < 127; i++)
-		EXPECT("Buffer::From::Parse<char>(" + std::to_string(i) + ") to be " + std::to_string(i), Buffer::From::Parse<char>(&i) == i);
-
-	EXPECT("Buffer::From::Parse<short>(\"\\x00\\x00\") to be 0", Buffer::From::Parse<short>("\x00\x00") == 0);
-	EXPECT("Buffer::From::Parse<short>(\"\\xFF\\xFF\") to be -1", Buffer::From::Parse<short>("\xFF\xFF") == -1);
-	EXPECT("Buffer::From::Parse<short>(\"\\x00\\x80\") to be -32768", Buffer::From::Parse<short>("\x00\x80") == -32768);
-	EXPECT("Buffer::From::Parse<short>(\"\\xFF\\x7F\") to be 32767", Buffer::From::Parse<short>("\xFF\x7F") == 32767);
-
-	EXPECT("Buffer::From::Parse<unsigned short>(\"\\x00\\x00\") to be 0", Buffer::From::Parse<unsigned short>("\x00\x00") == 0);
-	EXPECT("Buffer::From::Parse<unsigned short>(\"\\xFF\\xFF\") to be 65535", Buffer::From::Parse<unsigned short>("\xFF\xFF") == 65535);
-	EXPECT("Buffer::From::Parse<unsigned short>(\"\\x00\\x80\") to be 32768", Buffer::From::Parse<unsigned short>("\x00\x80") == 32768);
-	EXPECT("Buffer::From::Parse<unsigned short>(\"\\xFF\\x7F\") to be 32767", Buffer::From::Parse<unsigned short>("\xFF\x7F") == 32767);
-
-	EXPECT("Buffer::From::Parse<int32_t>(\"\\x00\\x00\\x00\\x00\") to be 0", Buffer::From::Parse<int32_t>("\x00\x00\x00\x00") == 0);
-	EXPECT("Buffer::From::Parse<int32_t>(\"\\xFF\\xFF\\xFF\\xFF\") to be -1", Buffer::From::Parse<int32_t>("\xFF\xFF\xFF\xFF") == -1);
-	EXPECT("Buffer::From::Parse<int32_t>(\"\\x00\\x00\\x00\\x80\") to be -2147483648", Buffer::From::Parse<int32_t>("\x00\x00\x00\x80") == -2147483648);
-	EXPECT("Buffer::From::Parse<int32_t>(\"\\xFF\\xFF\\xFF\\x7F\") to be 2147483647", Buffer::From::Parse<int32_t>("\xFF\xFF\xFF\x7F") == 2147483647);
-
-	EXPECT("Buffer::From::Parse<uint32_t>(\"\\x00\\x00\\x00\\x00\") to be 0", Buffer::From::Parse<uint32_t>("\x00\x00\x00\x00") == 0);
-	EXPECT("Buffer::From::Parse<uint32_t>(\"\\xFF\\xFF\\xFF\\xFF\") to be 4294967295", Buffer::From::Parse<uint32_t>("\xFF\xFF\xFF\xFF") == 4294967295);
-	EXPECT("Buffer::From::Parse<uint32_t>(\"\\x00\\x00\\x00\\x80\") to be 2147483648", Buffer::From::Parse<uint32_t>("\x00\x00\x00\x80") == 2147483648);
-	EXPECT("Buffer::From::Parse<uint32_t>(\"\\xFF\\xFF\\xFF\\x7F\") to be 2147483647", Buffer::From::Parse<uint32_t>("\xFF\xFF\xFF\x7F") == 2147483647);
-
-	EXPECT("Buffer::From::Parse(\"\\x0Bhello\\0world\") to be \"hello\\0world\"", Buffer::From::Parse<std::string>("\x0Bhello\0world") == std::string("hello\0world", 11));
+		if (i == 127) // overflows
+			break;
+	}
 );
 
-TEST("Buffer::From::Parse", "work",
-	EXPECT("Buffer::From::ParseVector<std::string>(\"\\x2\\x5hello\\x6world!\") to be { \"hello\", \"world!\" }", Buffer::From::ParseVector<std::string>("\x2\x5hello\x6world!") == res1);
-	EXPECT("Buffer::From::ParseVector<int8_t>(\"\\x3\\x12\\x34\\x56\") to be { 0x12, 0x34, 0x56 }", Buffer::From::ParseVector<int8_t>("\x3\x12\x34\x56") == res2);
-	EXPECT("Buffer::From::ParseVector<std::vector<std::string>>(\"\\x2\\x2\\x5hello\\x6world!\\x3\\x3how\\x4 are\\x4you?\"", Buffer::From::ParseVector<std::vector<std::string>>("\x2\x2\x5hello\x6world!\x3\x3how\x4 are\x4you?") == res3);
-);
-
-TEST("Buffer::From::ParseVectorOfTuple", "work",
-	const char* buffer1 = "\x2\x5hello\x12\x6world!\x34";
-	EXPECT("Buffer::From::ParseVectorOfTuple<std::string, int8_t>(\"\\x2\\x5hello\\x12\\x6world!\\x34\") to be { { \"hello\", 0x12 }, { \"world!\", 0x34 } }", (Buffer::From::ParseVectorOfTuple<std::string, int8_t>)(buffer1) == res4);
-);
-
-
-BENCH("Buffer::From::Parse<int8_t>\t\t\t", "be fast",
-	const char* buffer = "\x16";
-
+BENCH("Construct a Buffer from int8_t", "be fast",
 	START_BENCH;
-	Buffer::From::Parse<int8_t>(buffer);
+	Buffer::Buffer buf((int8_t)-5);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::From::Parse<int16_t>\t\t\t", "be fast",
-	const char* buffer = "\x16\x25";
+TEST("Construct a Buffer from uint8_t", "work",
+	for (uint8_t i = 0;; i++)
+	{
+		Buffer::Buffer buf(i);
+		EXPECT("buf.GetSize() to be 1", buf.GetSize() == 1);
+		EXPECT("buf.GetData() to be " + std::to_string(i), static_cast<uint8_t>(buf.GetData()[0]) == i);
+		EXPECT("Buffer::GetArguments() to be " + std::to_string(i), Buffer::Buffer::GetArguments<uint8_t>(buf.GetData()) == i);
 
+		if (i == 255) // overflows
+			break;
+	}
+);
+
+BENCH("Construct a Buffer from uint8_t", "be fast",
 	START_BENCH;
-	Buffer::From::Parse<int16_t>(buffer);
+	Buffer::Buffer buf((uint8_t)250);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::From::Parse<int32_t>\t\t\t", "be fast",
-	const char* buffer = "\x16\x25\x2f\xff";
+TEST("Construct a Buffer from int16_t", "work",
+	Buffer::Buffer buf1((int16_t)0);
+	EXPECT("buf1.GetSize() to be 2", buf1.GetSize() == 2);
+	EXPECT("buf1.GetData() to be \"\\x00\\x00\"", std::string(buf1.GetData(), 2) == std::string("\x00\x00", 2));
+	EXPECT("Buffer::GetArguments() to be 0", Buffer::Buffer::GetArguments<int16_t>(buf1.GetData()) == 0);
 
+	Buffer::Buffer buf2((int16_t)-1);
+	EXPECT("buf2.GetSize() to be 2", buf2.GetSize() == 2);
+	EXPECT("buf2.GetData() to be \"\\xFF\\xFF\"", std::string(buf2.GetData(), 2) == std::string("\xFF\xFF", 2));
+	EXPECT("Buffer::GetArguments() to be -1", Buffer::Buffer::GetArguments<int16_t>(buf2.GetData()) == -1);
+
+	Buffer::Buffer buf3((int16_t)-32768);
+	EXPECT("buf3.GetSize() to be 2", buf3.GetSize() == 2);
+	EXPECT("buf3.GetData() to be \"\\x00\\x80\"", std::string(buf3.GetData(), 2) == std::string("\x00\x80", 2));
+	EXPECT("Buffer::GetArguments() to be -32768", Buffer::Buffer::GetArguments<int16_t>(buf3.GetData()) == -32768);
+
+	Buffer::Buffer buf4((int16_t)32767);
+	EXPECT("buf4.GetSize() to be 2", buf4.GetSize() == 2);
+	EXPECT("buf4.GetData() to be \"\\xFF\\x7F\"", std::string(buf4.GetData(), 2) == std::string("\xFF\x7F", 2));
+	EXPECT("Buffer::GetArguments() to be 32767", Buffer::Buffer::GetArguments<int16_t>(buf4.GetData()) == 32767);
+);
+
+BENCH("Construct a Buffer from int16_t", "be fast",
 	START_BENCH;
-	Buffer::From::Parse<int32_t>(buffer);
+	Buffer::Buffer buf((int16_t)-31523);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::From::Parse<std::string>\t\t\t", "be fast",
-	const char* buffer = "hello";
+TEST("Construct a Buffer from uint16_t", "work",
+	Buffer::Buffer buf1((uint16_t)0);
+	EXPECT("buf1.GetSize() to be 2", buf1.GetSize() == 2);
+	EXPECT("buf1.GetData() to be \"\\x00\\x00\"", std::string(buf1.GetData(), 2) == std::string("\x00\x00", 2));
+	EXPECT("Buffer::GetArguments() to be 0", Buffer::Buffer::GetArguments<uint16_t>(buf1.GetData()) == 0);
 
+	Buffer::Buffer buf2((uint16_t)65535);
+	EXPECT("buf2.GetSize() to be 2", buf2.GetSize() == 2);
+	EXPECT("buf2.GetData() to be \"\\xFF\\xFF\"", std::string(buf2.GetData(), 2) == std::string("\xFF\xFF", 2));
+	EXPECT("Buffer::GetArguments() to be 65535", Buffer::Buffer::GetArguments<uint16_t>(buf2.GetData()) == 65535);
+
+	Buffer::Buffer buf3((uint16_t)-32768);
+	EXPECT("buf3.GetSize() to be 2", buf3.GetSize() == 2);
+	EXPECT("buf3.GetData() to be \"\\x00\\x80\"", std::string(buf3.GetData(), 2) == std::string("\x00\x80", 2));
+	EXPECT("Buffer::GetArguments() to be 32768", Buffer::Buffer::GetArguments<uint16_t>(buf3.GetData()) == 32768);
+
+	Buffer::Buffer buf4((uint16_t)32767);
+	EXPECT("buf4.GetSize() to be 2", buf4.GetSize() == 2);
+	EXPECT("buf4.GetData() to be \"\\xFF\\x7F\"", std::string(buf4.GetData(), 2) == std::string("\xFF\x7F", 2));
+	EXPECT("Buffer::GetArguments() to be 32767", Buffer::Buffer::GetArguments<uint16_t>(buf4.GetData()) == 32767);
+);
+
+BENCH("Construct a Buffer from uint16_t", "be fast",
 	START_BENCH;
-	Buffer::From::Parse<std::string>(buffer);
+	Buffer::Buffer buf((uint16_t)45321);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::From::Parse<std::vector<std::string>>\t", "be fast",
+TEST("Construct a Buffer from int32_t", "work",
+	Buffer::Buffer buf1((int32_t)0);
+	EXPECT("buf1.GetSize() to be 4", buf1.GetSize() == 4);
+	EXPECT("buf1.GetData() to be \"\\x00\\x00\\x00\\x00\"", std::string(buf1.GetData(), 4) == std::string("\x00\x00\x00\x00", 4));
+	EXPECT("Buffer::GetArguments() to be 0", Buffer::Buffer::GetArguments<int32_t>(buf1.GetData()) == 0);
+
+	Buffer::Buffer buf2((int32_t)-1);
+	EXPECT("buf2.GetSize() to be 4", buf2.GetSize() == 4);
+	EXPECT("buf2.GetData() to be \"\\xFF\\xFF\\xFF\\xFF\"", std::string(buf2.GetData(), 4) == std::string("\xFF\xFF\xFF\xFF", 4));
+	EXPECT("Buffer::GetArguments() to be -1", Buffer::Buffer::GetArguments<int32_t>(buf2.GetData()) == -1);
+
+	Buffer::Buffer buf3((int32_t)-2147483648);
+	EXPECT("buf3.GetSize() to be 4", buf3.GetSize() == 4);
+	EXPECT("buf3.GetData() to be \"\\x00\\x00\\x00\\x80\"", std::string(buf3.GetData(), 4) == std::string("\x00\x00\x00\x80", 4));
+	EXPECT("Buffer::GetArguments() to be -2147483648", Buffer::Buffer::GetArguments<int32_t>(buf3.GetData()) == -2147483648);
+
+	Buffer::Buffer buf4((int32_t)2147483647);
+	EXPECT("buf4.GetSize() to be 4", buf4.GetSize() == 4);
+	EXPECT("buf4.GetData() to be \"\\xFF\\xFF\\xFF\\x7F\"", std::string(buf4.GetData(), 4) == std::string("\xFF\xFF\xFF\x7F", 4));
+	EXPECT("Buffer::GetArguments() to be 2147483647", Buffer::Buffer::GetArguments<int32_t>(buf4.GetData()) == 2147483647);
+);
+
+BENCH("Construct a Buffer from int32_t", "be fast",
 	START_BENCH;
-	Buffer::From::Parse<std::vector<std::string>>(res5.c_str());
+	Buffer::Buffer buf((int32_t)-4532541);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::From::ParseVectorOfTuple\t\t\t", "be fast",
+TEST("Construct a Buffer from int32_t", "work",
+	Buffer::Buffer buf1((uint32_t)0);
+	EXPECT("buf1.GetSize() to be 4", buf1.GetSize() == 4);
+	EXPECT("buf1.GetData() to be \"\\x00\\x00\\x00\\x00\"", std::string(buf1.GetData(), 4) == std::string("\x00\x00\x00\x00", 4));
+	EXPECT("Buffer::GetArguments() to be 0", Buffer::Buffer::GetArguments<uint32_t>(buf1.GetData()) == 0);
+
+	Buffer::Buffer buf2((uint32_t)4294967295);
+	EXPECT("buf2.GetSize() to be 4", buf2.GetSize() == 4);
+	EXPECT("buf2.GetData() to be \"\\xFF\\xFF\\xFF\\xFF\"", std::string(buf2.GetData(), 4) == std::string("\xFF\xFF\xFF\xFF", 4));
+	EXPECT("Buffer::GetArguments() to be 4294967295", Buffer::Buffer::GetArguments<uint32_t>(buf2.GetData()) == 4294967295);
+
+	Buffer::Buffer buf3((uint32_t)2147483648);
+	EXPECT("buf3.GetSize() to be 4", buf3.GetSize() == 4);
+	EXPECT("buf3.GetData() to be \"\\x00\\x00\\x00\\x80\"", std::string(buf3.GetData(), 4) == std::string("\x00\x00\x00\x80", 4));
+	EXPECT("Buffer::GetArguments() to be 2147483648", Buffer::Buffer::GetArguments<uint32_t>(buf3.GetData()) == 2147483648);
+
+	Buffer::Buffer buf4((uint32_t)2147483647);
+	EXPECT("buf4.GetSize() to be 4", buf4.GetSize() == 4);
+	EXPECT("buf4.GetData() to be \"\\xFF\\xFF\\xFF\\x7F\"", std::string(buf4.GetData(), 4) == std::string("\xFF\xFF\xFF\x7F", 4));
+	EXPECT("Buffer::GetArguments() to be 2147483647", Buffer::Buffer::GetArguments<uint32_t>(buf4.GetData()) == 2147483647);
+);
+
+BENCH("Construct a Buffer from uint32_t", "be fast",
 	START_BENCH;
-	(Buffer::From::ParseVectorOfTuple<std::string, int8_t>)(res6.c_str());
+	Buffer::Buffer buf((uint32_t)4532541);
 	STOP_BENCH;
 );
 
-
-// Buffer::To
-TEST("Buffer::To::Parse", "work",
-	for (char i = -128; i < 127; i++)
-		EXPECT("Buffer::To::Parse(" + std::to_string(i) + ") to be " + std::to_string(i),Buffer::To::Parse(i)[0] == i);
-
-	EXPECT("Buffer::To::Parse(0) to be \"\\x00\\x00\"", Buffer::To::Parse((short)0) == std::string("\x00\x00", 2));
-	EXPECT("Buffer::To::Parse(-1) to be \"\\xFF\\xFF\"", Buffer::To::Parse((short)-1) == std::string("\xFF\xFF", 2));
-	EXPECT("Buffer::To::Parse(-32768) to be \"\\x00\\x80\"", Buffer::To::Parse((short)-32768) == std::string("\x00\x80", 2));
-	EXPECT("Buffer::To::Parse(32767) to be \"\\xFF\\x7F\"", Buffer::To::Parse((short)32767) == std::string("\xFF\x7F", 2));
-
-	EXPECT("Buffer::To::Parse(0) to be \"\\x00\\x00\"", Buffer::To::Parse((unsigned short)0) == std::string("\x00\x00", 2));
-	EXPECT("Buffer::To::Parse(65535) to be \"\\xFF\\xFF\"", Buffer::To::Parse((unsigned short)65535) == std::string("\xFF\xFF", 2));
-	EXPECT("Buffer::To::Parse(32768) to be \"\\x00\\x80\"", Buffer::To::Parse((unsigned short)32768) == std::string("\x00\x80", 2));
-	EXPECT("Buffer::To::Parse(32767) to be \"\\xFF\\x7F\"", Buffer::To::Parse((unsigned short)32767) == std::string("\xFF\x7F", 2));
-
-	EXPECT("Buffer::To::Parse(0) to be \"\\x00\\x00\\x00\\x00\"", Buffer::To::Parse((uint32_t)0) == std::string("\x00\x00\x00\x00", 4));
-	EXPECT("Buffer::To::Parse(-1) to be \"\\xFF\\xFF\\xFF\\xFF\"", Buffer::To::Parse((uint32_t)-1) == std::string("\xFF\xFF\xFF\xFF", 4));
-	EXPECT("Buffer::To::Parse(-2147483648) to be \"\\x00\\x00\\x00\\x80\"", Buffer::To::Parse((uint32_t)-2147483648) == std::string("\x00\x00\x00\x80", 4));
-	EXPECT("Buffer::To::Parse(2147483647) to be \"\\xFF\\xFF\\xFF\\x7F\"", Buffer::To::Parse((uint32_t)2147483647) == std::string("\xFF\xFF\xFF\x7F", 4));
-
-	EXPECT("Buffer::To::Parse(0) to be \"\\x00\\x00\\x00\\x00\"", Buffer::To::Parse((uint32_t)0) == std::string("\x00\x00\x00\x00", 4));
-	EXPECT("Buffer::To::Parse(4294967295) to be \"\\xFF\\xFF\\xFF\\xFF\"", Buffer::To::Parse((uint32_t)4294967295) == std::string("\xFF\xFF\xFF\xFF", 4));
-	EXPECT("Buffer::To::Parse(2147483648) to be \"\\x00\\x00\\x00\\x80\"", Buffer::To::Parse((uint32_t)2147483648) == std::string("\x00\x00\x00\x80", 4));
-	EXPECT("Buffer::To::Parse(2147483647) to be \"\\xFF\\xFF\\xFF\\x7F\"", Buffer::To::Parse((uint32_t)2147483647) == std::string("\xFF\xFF\xFF\x7F", 4));
+TEST("Construct a Buffer from std::string", "work",
+	std::string target("hello guys!");
+	Buffer::Buffer buf(target);
+	EXPECT("buf.GetSize() to be 12", buf.GetSize() == 12);
+	EXPECT("buf.GetData() to be \"\\x0Bhello guys!\"", std::string(buf.GetData(), 12) == std::string("\x0B") + target);
+	EXPECT("Buffer::GetArguments() to be \"hello guys!\"", Buffer::Buffer::GetArguments<std::string>(buf.GetData()) == target);
 );
 
-TEST("Buffer::To::ParseVector", "work",
-	auto current1 = Buffer::To::ParseVector(res1);
-	EXPECT("Buffer::To::ParseVector({ \"hello\", \"world!\" }) to be \"\\x2\\x5hello\\x6world!\"", current1 == res5);
-
-	auto current2 = Buffer::To::ParseVector(res2);
-	EXPECT("Buffer::To::ParseVector({ 0x12, 0x34, 0x56 }) to be \"\\x3\\x12\\x34\\x56\"", current2 == res6);
-
-	auto current3 = Buffer::To::ParseVector(res3);
-	EXPECT("Buffer::To::ParseVector({ { \"hello\", \"world!\"}, { \"how\", \" are\", \"you ? \" }}) to be \"\\x2\\x2\\x5hello\\x6world!\\x3\\x3how\\x4 are\\x4you?\"", current3 == res7);
-
-	auto current4 = Buffer::To::ParseVector(res4);
-	EXPECT("Buffer::To::ParseVector({ { \"hello\", 0x12 }, { \"world!\", 0x34 } }) to be \"\\x2\\x5hello\\x12\\x6world!\\x34\"", current4 == res8);
-);
-
-
-BENCH("Buffer::To::Parse (1 byte)\t\t\t", "be fast",
-	char data = 5;
-
+BENCH("Construct a Buffer from std::string", "be fast",
+	std::string target("hello guys!");
 	START_BENCH;
-	Buffer::To::Parse(data);
+	Buffer::Buffer buf(target);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::To::Parse (2 bytes)\t\t\t", "be fast",
-	unsigned short data = 34544;
+std::tuple<int8_t, int16_t> tup_res1 = { 0x12, 0x0080 };
+TEST("Construct a Buffer from std::tuple<int8_t, int16_t>", "work",
+	Buffer::Buffer buf(tup_res1);
+	EXPECT("buf.GetSize() to be 3", buf.GetSize() == 3);
+	EXPECT("buf.GetData() to be \"\\x12\\x80\\x00\"", std::string(buf.GetData(), 3) == std::string("\x12\x80\x00", 3));
+	EXPECT("Buffer::GetArguments() to be { 0x12, 0x8000 }", (Buffer::Buffer::GetArguments<std::tuple<int8_t, int16_t>>(buf.GetData())) == tup_res1);
+);
 
+BENCH("Construct a Buffer from std::tuple<int8_t, int16_t>", "be fast",
 	START_BENCH;
-	Buffer::To::Parse(data);
+	Buffer::Buffer buf(tup_res1);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::To::Parse (4 bytes)\t\t\t", "be fast",
-	int32_t data = 464564385;
+std::tuple<int8_t, std::string> tup_res2 = { 0x12, "hello"};
+TEST("Construct a Buffer from std::tuple<int8_t, std::string>", "work",
+	Buffer::Buffer buf(tup_res2);
+	EXPECT("buf.GetSize() to be 7", buf.GetSize() == 7);
+	EXPECT("buf.GetData() to be \"\\x12\\x05hello\"", std::string(buf.GetData(), 7) == std::string("\x12\x05hello", 7));
+	EXPECT("Buffer::GetArguments() to be { 0x12, \"hello\" }", (Buffer::Buffer::GetArguments<std::tuple<int8_t, std::string>>(buf.GetData())) == tup_res2);
+);
 
+BENCH("Construct a Buffer from std::tuple<int8_t, std::string>", "be fast",
 	START_BENCH;
-	Buffer::To::Parse(data);
+	Buffer::Buffer buf(tup_res2);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::To::Parse (std::string)\t\t\t", "be fast",
-	std::string buffer = "hello";
+std::vector<int8_t> vec_res1 = { 0x12, 0x34, 0x56 };
+TEST("Construct a Buffer from std::vector<int8_t>", "work",
+	Buffer::Buffer buf(vec_res1);
+	EXPECT("buf.GetSize() to be 4", buf.GetSize() == 4);
+	EXPECT("buf.GetData() to be \"\\x03\\x12\\x34\\x56\"", std::string(buf.GetData(), 4) == std::string("\x03\x12\x34\x56", 4));
+	EXPECT("Buffer::GetArguments() to be { 0x12, 0x34, 0x56 }", Buffer::Buffer::GetArguments<std::vector<int8_t>>(buf.GetData()) == vec_res1);
+);
 
+BENCH("Construct a Buffer from std::vector<int8_t>", "be fast",
 	START_BENCH;
-	Buffer::To::Parse(buffer);
+	Buffer::Buffer buf(vec_res1);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::To::ParseVector\t\t\t\t", "be fast",
+std::vector<std::string> vec_res2 = { "hello", "guys", "!"};
+TEST("Construct a Buffer from std::vector<std::string>", "work",
+	Buffer::Buffer buf(vec_res2);
+	EXPECT("buf.GetSize() to be 14", buf.GetSize() == 14);
+	EXPECT("buf.GetData() to be \"\\x03\\x05hello\\x04guys\\x01!\"", std::string(buf.GetData(), 14) == std::string("\x03\x05hello\x04guys\x01!", 14));
+	EXPECT("Buffer::GetArguments() to be { \"hello\", \"guys\", \"!\" }", Buffer::Buffer::GetArguments<std::vector<std::string>>(buf.GetData()) == vec_res2);
+);
+
+BENCH("Construct a Buffer from std::vector<std::string>", "be fast",
 	START_BENCH;
-	Buffer::To::ParseVector(res1);
+	Buffer::Buffer buf(vec_res2);
 	STOP_BENCH;
 );
 
-BENCH("Buffer::To::ParseVector (tuple)\t\t\t", "be fast",
+std::vector<std::tuple<int8_t, std::string>> vec_res3 =
+{
+	{ 0x12, "hello" },
+	{ 0x34, "guys" },
+	{ 0x56, "!" },
+};
+TEST(("Construct a Buffer from std::vector<std::tuple<int8_t, std::string>>"), "work",
+	Buffer::Buffer buf(vec_res3);
+EXPECT("buf.GetSize() to be 17", buf.GetSize() == 17);
+EXPECT("buf.GetData() to be \"\\x03\\x12\\x05hello\\x34\\x04guys\\x56\\x01!\"", std::string(buf.GetData(), 17) == std::string("\x03\x12\x05hello\x34\x04guys\x56\x01!", 17));
+EXPECT("Buffer::GetArguments() to be { { 0x12, \"hello\" }, { 0x34, \"guys\" }, { 0x56, \"!\" } }", (Buffer::Buffer::GetArguments<std::vector<std::tuple<int8_t, std::string>>>(buf.GetData())) == vec_res3);
+);
+
+BENCH(("Construct a Buffer from std::vector<std::tuple<int8_t, std::string>>"), "be fast",
 	START_BENCH;
-	Buffer::To::ParseVector(res4);
+	Buffer::Buffer buf(vec_res3);
 	STOP_BENCH;
 );

@@ -36,274 +36,171 @@ namespace Buffer
         concept isFourBytesVariable = sizeof(T) == 4; // (std::same_as<T, uint32_t> || std::same_as<T, int32_t>);
     }
 
-    namespace From
+    class Buffer
     {
-        template <typename T>
-        static T Parse(const char* data)
+    public:
+        template<typename ...Ts>
+        Buffer(const Ts&... args)
         {
-            if constexpr (isOneByteVariable<T>)
+            data = new char[getSize(args...)];
+            handleArg(args...);
+        }
+
+        ~Buffer()
+        {
+            if (data != nullptr) [[likely]]
             {
-                const unsigned char* d = reinterpret_cast<const unsigned char*>(data);
+                delete[] data;
+                data = nullptr;
+            }
+        }
+
+        template<typename T>
+        static T GetArguments(const char* Data)
+        {
+            size_t Cursor = 0;
+            return retrieveArg<T>(Data, Cursor);
+        }
+
+        [[nodiscard]] const size_t GetSize() const noexcept { return size; }
+        [[nodiscard]] const char* GetData() const noexcept { return data; }
+        [[nodiscard]] const std::string GetDataAsString() const { return std::string(data, size); }
+
+    private:
+        template<typename T>
+        static T retrieveArg(const char* Data, size_t& Cursor)
+        {
+            if constexpr (isVector<T>)
+            {
+                unsigned char dataSize = static_cast<unsigned char>(*(Data + Cursor));
+                T output;
+                output.reserve(dataSize);
+                Cursor += 1;
+                for (unsigned char i = 0; i < dataSize; i++) [[likely]]
+                {
+                    output.push_back(retrieveArg<typename T::value_type>(Data, Cursor));
+                }
+                return output;
+            }
+            else if constexpr (isTuple<T>)
+            {
+                return [&Data, &Cursor] <typename... Ts>(std::type_identity<std::tuple<Ts...>>)
+                {
+                    // Headaches. See: https://stackoverflow.com/a/14057064/10771848, https://stackoverflow.com/questions/60169058/expand-a-tuple-type-into-a-variadic-template
+                    return std::tuple<Ts...>{ Ts(retrieveArg<Ts>(Data, Cursor))... };
+                }(std::type_identity<T>{});
+            }
+            else if constexpr (isString<T>)
+            {
+                unsigned char dataSize = static_cast<unsigned char>(*(Data + Cursor));
+                Cursor += 1;
+                std::string output(Data + Cursor, dataSize);
+                Cursor += dataSize;
+                return output;
+            }
+            else if constexpr (isOneByteVariable<T>)
+            {
+                const unsigned char* d = reinterpret_cast<const unsigned char*>(Data + Cursor);
+                Cursor += 1;
                 return static_cast<T>(*(d));
             }
             else if constexpr (isTwoBytesVariable<T>)
             {
-                const unsigned char* d = reinterpret_cast<const unsigned char*>(data);
+                const unsigned char* d = reinterpret_cast<const unsigned char*>(Data + Cursor);
+                Cursor += 2;
                 return static_cast<T>(
                     (*(d + 1) << 8) |
                     (*(d)));
             }
             else if constexpr (isFourBytesVariable<T>)
             {
-                const unsigned char* d = reinterpret_cast<const unsigned char*>(data);
+                const unsigned char* d = reinterpret_cast<const unsigned char*>(Data + Cursor);
+                Cursor += 4;
                 return static_cast<T>(
                     (*(d + 3) << 24) |
                     (*(d + 2) << 16) |
                     (*(d + 1) << 8) |
                     (*(d)));
             }
-            else if constexpr (isString<T>)
-            {
-                return std::string(data + 1, Parse<unsigned char>(data));
-            }
-            return T{};
-        }
-        
-        template <typename T>
-        static T internalParseVariable(const char* data, int* current)
-        {
-            // Note: no need to handle tuple, since std::tuple<..., std::tuple<...>, ...> does not make sense
-            if constexpr (isVector<T>)
-            {
-                return internalParseVector<typename T::value_type>(data, current);
-            }
-            else if constexpr (isString<T>)
-            {
-                std::string message(Parse<std::string>(data + *current));
-                *current += 1 + static_cast<char>(message.size());
-                return message;
-            }
-            else if constexpr (isOneByteVariable<T>)
-            {
-                T val = Parse<T>(data + *current);
-                *current += 1;
-                return val;
-            }
-            else if constexpr (isTwoBytesVariable<T>)
-            {
-                T val = Parse<T>(data + *current);
-                *current += 2;
-                return val;
-            }
-            else if constexpr (isFourBytesVariable<T>)
-            {
-                T val = Parse<T>(data + *current);
-                *current += 4;
-                return val;
-            }
-
             return T{};
         }
 
-        template <typename T>
-        static std::vector<T> internalParseVector(const char* data, int* current)
+        void handleArg() {}
+        template <typename First, typename... Rest>
+        void handleArg(const First& first, const Rest&... rest)
         {
-            unsigned char size = Parse<unsigned char>(data + *current);
-
-            std::vector<T> output;
-            output.reserve(size);
-
-            *current += 1;
-            for (unsigned char i = 0; i < size; i++) [[likely]]
-                output.push_back(internalParseVariable<T>(data, current));
-
-            return output;
-        }
-
-        template <typename T>
-        static std::vector<T> ParseVector(const char* data)
-        {
-            unsigned char size = Parse<unsigned char>(data);
-
-            std::vector<T> output;
-            output.reserve(size);
-
-            int current = 1;
-            for (unsigned char i = 0; i < size; i++) [[likely]]
-                output.push_back(internalParseVariable<T>(data, &current));
-
-            return output;
-        }
-
-        template <typename T>
-        static std::pair<std::vector<T>, int> ParseVectorGetSize(const char* data)
-        {
-            unsigned char size = Parse<unsigned char>(data);
-
-            std::vector<T> output;
-            output.reserve(size);
-
-            int current = 1;
-            for (unsigned char i = 0; i < size; i++) [[likely]]
-                output.push_back(internalParseVariable<T>(data, &current));
-
-            return { output, current };
-        }
-
-        template <typename ...Ts>
-        static std::vector<std::tuple<Ts...>> ParseVectorOfTuple(const char* data)
-        {
-            unsigned char size = Parse<unsigned char>(data);
-
-            std::vector<std::tuple<Ts...>> output;
-            output.reserve(size);
-
-            int current = 1;
-            for (unsigned char i = 0; i < size; i++) [[likely]]
+            if constexpr (isVector<First>)
             {
-                // Headaches. See: https://stackoverflow.com/a/14057064/10771848
-                output.push_back({ Ts(internalParseVariable<Ts>(data, &current))... });
+                data[size++] = static_cast<char>(first.size());
+                for (auto const& d : first) [[likely]]
+                    handleArg(d);
             }
-
-            return output;
-        }
-    }
-
-    namespace To
-    {
-
-        template<typename T>
-        static void internalParseOneByte(T data, std::string& buffer)
-        {
-            buffer += static_cast<char>(data);
+            else if constexpr (isTuple<First>)
+            {
+                std::apply([this](auto&&... args)
+                {
+                    (handleArg(args), ...);
+                }, first);
+            }
+            else if constexpr (isString<First>)
+            {
+                unsigned char strSize = static_cast<unsigned char>(first.size());
+                data[size++] = static_cast<char>(strSize);
+                memcpy(data + size, first.c_str(), first.size());
+                size += strSize;
+            }
+            else if constexpr (isOneByteVariable<First>)
+            {
+                data[size++] = static_cast<char>(first);
+            }
+            else if constexpr (isTwoBytesVariable<First>)
+            {
+                data[size++] = static_cast<char>(first & 0xFF);
+                data[size++] = static_cast<char>(first >> 8 & 0xFF);
+            }
+            else if constexpr (isFourBytesVariable<First>)
+            {
+                data[size++] = static_cast<char>(first & 0xFF);
+                data[size++] = static_cast<char>(first >> 8 & 0xFF);
+                data[size++] = static_cast<char>(first >> 16 & 0xFF);
+                data[size++] = static_cast<char>(first >> 24 & 0xFF);
+            }
+            handleArg(rest...);
         }
 
         template<typename T>
-        static void internalParseTwoBytes(T data, std::string& buffer)
-        {
-            buffer += (data & 0xFF);
-            buffer += (data >> 8 & 0xFF);
-        }
-
-        template<typename T>
-        static void internalParseFourBytes(T data, std::string& buffer)
-        {
-            buffer += (data & 0xFF);
-            buffer += (data >> 8 & 0xFF);
-            buffer += (data >> 16 & 0xFF);
-            buffer += (data >> 24 & 0xFF);
-        }
-
-        static void internalParseString(const std::string& data, std::string& buffer)
-        {
-            buffer += static_cast<char>(data.size());
-            buffer += data;
-        }
-
-        template<typename T>
-        static std::string Parse(T data)
-        {
-            if constexpr (isString<T>)
-            {
-                std::string res;
-                res.reserve(1 + data.size());
-                internalParseString(data, res);
-                return res;
-            }
-            else if constexpr (isOneByteVariable<T>)
-            {
-                std::string res;
-                res.reserve(1);
-                internalParseOneByte(data, res);
-                return res;
-            }
-            else if constexpr (isTwoBytesVariable<T>)
-            {
-                std::string res;
-                res.reserve(2);
-                internalParseTwoBytes(data, res);
-                return res;
-            }
-            else if constexpr (isFourBytesVariable<T>)
-            {
-                std::string res;
-                res.reserve(4);
-                internalParseFourBytes(data, res);
-                return res;
-            }
-            return std::string();
-        }
-
-        template<typename T>
-        size_t GetSize(const T& t, bool isOwnedByVector = false)
+        size_t getSizeSimple(const T& t)
         {
             if constexpr (isVector<T>)
             {
-                size_t size = 1;
+                size_t dataSize = 1;
                 for (const auto& elem : t) [[likely]]
-                    size += GetSize(elem, true);
-                return size;
+                    dataSize += getSizeSimple(elem);
+                return dataSize;
             }
             else if constexpr (isTuple<T>)
             {
-                size_t size = 0;
-                std::apply([&size, &isOwnedByVector](auto&&... args)
+                size_t dataSize = 0;
+                std::apply([&dataSize, this](auto&&... args)
                 {
-                    ((size += GetSize(args, isOwnedByVector)), ...);
+                    ((dataSize += getSizeSimple(args)), ...);
                 }, t);
-                return size;
+                return dataSize;
             }
             else if constexpr (hasSize<T>)
-                return t.size() + isOwnedByVector;
+                return 1 + t.size();
             return sizeof t;
         }
 
-        template<typename T>
-        static void internalParseVariableToBuffer(const T& data, std::string& buffer)
+        template <typename... Ts>
+        size_t getSize(Ts&... args)
         {
-            if constexpr (isVector<T>)
-            {
-                buffer += static_cast<char>(data.size());
-                for (const auto& d : data) [[likely]]
-                    internalParseVariableToBuffer(d, buffer);
-            }
-            else if constexpr (isTuple<T>)
-            {
-                std::apply([&data, &buffer](auto&&... args)
-                {
-                    ((internalParseVariableToBuffer(args, buffer)), ...);
-                }, data);
-            }
-            else if constexpr (isString<T>)
-            {
-                internalParseString(data, buffer);
-            }
-            else if constexpr (isOneByteVariable<T>)
-            {
-                internalParseOneByte(data, buffer);
-            }
-            else if constexpr (isTwoBytesVariable<T>)
-            {
-                internalParseTwoBytes(data, buffer);
-            }
-            else if constexpr (isFourBytesVariable<T>)
-            {
-                internalParseFourBytes(data, buffer);
-            }
+            size_t size = 0;
+            ((size += getSizeSimple(args)), ...);
+            return size;
         }
 
-        template<typename T>
-        static std::string ParseVector(const std::vector<T>& data)
-        {
-            // Note: output is not null terminated and is not allocated of size + 1
-            std::string output;
-            output.reserve(GetSize(data));
-            output += static_cast<char>(data.size());
-
-            for (auto const& d : data) [[likely]]
-                internalParseVariableToBuffer(d, output);
-
-            return output;
-        }
-    }
+        size_t size{ 0 };
+        char* data{ nullptr }; // NOTE: not null terminated
+    };
 }
