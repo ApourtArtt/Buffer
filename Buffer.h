@@ -40,10 +40,10 @@ namespace Buffer
     {
     public:
         template<typename ...Ts>
-        Buffer(const Ts&... args)
+        Buffer(const Ts&... Args)
         {
-            data = new char[getSize(args...)];
-            handleArg(args...);
+            data = new char[getSize(Args...)];
+            handleArg(Args...);
         }
 
         ~Buffer()
@@ -60,6 +60,13 @@ namespace Buffer
         {
             size_t Cursor = 0;
             return retrieveArg<T>(Data, Cursor);
+        }
+
+        template<typename T>
+        static std::pair<T, size_t> GetArgumentsAndSize(const char* Data)
+        {
+            size_t Cursor = 0;
+            return { retrieveArg<T>(Data, Cursor), Cursor };
         }
 
         [[nodiscard]] const size_t GetSize() const noexcept { return size; }
